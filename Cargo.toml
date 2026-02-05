@@ -2,8 +2,36 @@
 name = "modularitea-libs"
 version = "0.1.0"
 edition = "2024"
+description = "Headless backend engine for TeaLinuxOS Modularitea"
+authors = ["TeaLinuxOS Team"]
+
+[lib]
+name = "modularitea_libs"
+path = "src/lib.rs"
+
+[[bin]]
+name = "modularitea-pacman"
+path = "src/bin/modularitea-pacman.rs"
+
+[[bin]]
+name = "modularitea-grub"
+path = "src/bin/modularitea-grub.rs"
+
+[[bin]]
+name = "modularitea-settings"
+path = "src/bin/modularitea-settings.rs"
+
+[[bin]]
+name = "modularitea-systemctl"
+path = "src/bin/modularitea-systemctl.rs"
 
 [dependencies]
 clap = { version = "4.5.56", features = ["derive"] }
 tokio = { version = "1.49.0", features = ["full"] }
-tea_partition_generator = { git = "https://github.com/tealinuxos/tea_partition_generator.git", branch = "master" }
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+thiserror = "2.0"
+tracing = "0.1"
+
+[dev-dependencies]
+tempfile = "3.15"
