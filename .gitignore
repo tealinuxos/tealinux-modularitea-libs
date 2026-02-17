@@ -1,2 +1,5 @@
 /target
 Cargo.lock
+*.zst
+src/target
+pkg
