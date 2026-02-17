@@ -4,6 +4,21 @@
 
 use std::path::PathBuf;
 use thiserror::Error;
+use serde::Serialize;
+use std::fmt;
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CommandErrorReturn {
+    pub operation: String,
+    pub exit_code: Option<i32>,
+    pub stderr: String,
+}
+
+impl fmt::Display for CommandErrorReturn {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.operation)
+    }
+}
 
 /// Main error type for the library
 #[derive(Error, Debug)]
@@ -56,12 +71,8 @@ pub enum ModulariteaError {
     // ─────────────────────────────────────────────────────────────────────────────
     // Infrastructure Errors
     // ─────────────────────────────────────────────────────────────────────────────
-    #[error("Pacman operation failed: {operation}")]
-    PacmanError {
-        operation: String,
-        exit_code: Option<i32>,
-        stderr: String,
-    },
+    #[error("Pacman operation failed: {0}")]
+    PacmanError(CommandErrorReturn),
 
     #[error("Grub configuration failed: {operation}")]
     GrubError { operation: String, reason: String },
@@ -116,7 +127,7 @@ pub enum ModulariteaError {
 pub type Result<T> = std::result::Result<T, ModulariteaError>;
 
 /// Execution result with optional output
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct CommandOutput {
     pub exit_code: i32,
     pub stdout: String,

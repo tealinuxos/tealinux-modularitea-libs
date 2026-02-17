@@ -3,7 +3,6 @@ use log::{LevelFilter, info, warn};
 use modularitea_libs::infrastructure::Pacman;
 use serde::Serialize;
 use std::env;
-use std::process::Command;
 
 #[derive(Parser)]
 #[command(
@@ -74,9 +73,26 @@ fn install_profile(name: &str) {
         Some(p) => {
             info!("Installing profile: {}", name);
             let pkgs: Vec<String> = p.package.iter().map(|s| s.to_string()).collect();
-            Pacman::install(&pkgs).unwrap();
+            let ret = Pacman::install(&pkgs);
 
-            println!("Profile '{}' installed.", name);
+            match ret {
+                Ok(retval) => {
+                    serde_json::to_string(&retval)
+                        .map(|json| println!("{}", json))
+                        .unwrap_or_else(|err| {
+                            warn!("Failed to serialize output for '{}': {}", name, err);
+                            eprintln!("Failed to serialize output.");
+                        });
+                },
+                Err(reterr) => {
+                    serde_json::to_string(&reterr)
+                        .map(|json| println!("{}", json))
+                        .unwrap_or_else(|err| {
+                            warn!("Failed to serialize error for '{}': {}", name, err);
+                            eprintln!("Failed to serialize error.");
+                        });
+                }
+            }
         }
         None => {
             warn!("Profile '{}' not found", name);
@@ -91,8 +107,26 @@ fn uninstall_profile(name: &str) {
         Some(p) => {
             info!("Uninstalling profile: {}", name);
             let pkgs: Vec<String> = p.package.iter().map(|s| s.to_string()).collect();
-            Pacman::remove(&pkgs, false);
-            println!("Profile '{}' uninstalled.", name);
+            let ret = Pacman::remove(&pkgs, false);
+
+            match ret {
+                Ok(retval) => {
+                    serde_json::to_string(&retval)
+                        .map(|json| println!("{}", json))
+                        .unwrap_or_else(|err| {
+                            warn!("Failed to serialize output for '{}': {}", name, err);
+                            eprintln!("Failed to serialize output.");
+                        });
+                }
+                Err(reterr) => {
+                    serde_json::to_string(&reterr)
+                        .map(|json| println!("{}", json))
+                        .unwrap_or_else(|err| {
+                            warn!("Failed to serialize error for '{}': {}", name, err);
+                            eprintln!("Failed to serialize error.");
+                        });
+                }
+            }
         }
         None => {
             warn!("Profile '{}' not found", name);

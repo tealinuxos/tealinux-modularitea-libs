@@ -2,19 +2,21 @@
 //!
 //! Handles package management via pacman.
 
-use crate::error::{CommandOutput, ModulariteaError, Result};
+use crate::error::{CommandOutput, CommandErrorReturn};
 use std::process::Command;
+
+type CommandResult<T> = std::result::Result<T, CommandErrorReturn>;
 
 pub struct Pacman;
 
 impl Pacman {
     /// Install packages
-    pub fn install(packages: &[String]) -> Result<CommandOutput> {
+    pub fn install(packages: &[String]) -> CommandResult<CommandOutput> {
         Self::run_pacman(&["-S", "--noconfirm", "--needed"], packages)
     }
 
     /// Remove packages
-    pub fn remove(packages: &[String], recursive: bool) -> Result<CommandOutput> {
+    pub fn remove(packages: &[String], recursive: bool) -> CommandResult<CommandOutput> {
         let mut args = vec!["-R", "--noconfirm"];
         if recursive {
             args.push("-s");
@@ -23,18 +25,18 @@ impl Pacman {
     }
 
     /// Update database
-    pub fn update_db() -> Result<CommandOutput> {
+    pub fn update_db() -> CommandResult<CommandOutput> {
         Self::run_pacman_raw(&["-Sy"])
     }
 
     /// Check if package is installed (read-only)
-    pub fn is_installed(package: &str) -> Result<bool> {
+    pub fn is_installed(package: &str) -> CommandResult<bool> {
         let output = Command::new("pacman")
             .arg("-Qi")
             .arg(package)
             .output()
-            .map_err(|e| ModulariteaError::CommandError {
-                command: format!("pacman -Qi {}", package),
+            .map_err(|e| CommandErrorReturn {
+                operation: format!("pacman -Qi {}", package),
                 exit_code: None,
                 stderr: e.to_string(),
             })?;
@@ -42,7 +44,7 @@ impl Pacman {
         Ok(output.status.success())
     }
 
-    fn run_pacman(flags: &[&str], packages: &[String]) -> Result<CommandOutput> {
+    fn run_pacman(flags: &[&str], packages: &[String]) -> CommandResult<CommandOutput> {
         if packages.is_empty() {
             return Ok(CommandOutput {
                 exit_code: 0,
@@ -59,9 +61,9 @@ impl Pacman {
         Self::run_pacman_raw(&args)
     }
 
-    fn run_pacman_raw(args: &[&str]) -> Result<CommandOutput> {
+    fn run_pacman_raw(args: &[&str]) -> CommandResult<CommandOutput> {
         let output = Command::new("pacman").args(args).output().map_err(|e| {
-            ModulariteaError::PacmanError {
+            CommandErrorReturn {
                 operation: format!("pacman {}", args.join(" ")),
                 exit_code: None,
                 stderr: e.to_string(),
@@ -72,7 +74,7 @@ impl Pacman {
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
         if !output.status.success() {
-            return Err(ModulariteaError::PacmanError {
+            return Err(CommandErrorReturn {
                 operation: format!("pacman {}", args.join(" ")),
                 exit_code: output.status.code(),
                 stderr,
