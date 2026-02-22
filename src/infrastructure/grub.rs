@@ -28,7 +28,6 @@ impl Grub {
 
     /// Regenerate grub.cfg
     pub fn regenerate() -> Result<CommandOutput> {
-        // Detect path (Arch/Debian usually rely on grub-mkconfig)
         let output = Command::new("grub-mkconfig")
             .arg("-o")
             .arg("/boot/grub/grub.cfg")

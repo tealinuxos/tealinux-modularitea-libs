@@ -1,8 +1,10 @@
 use clap::{Parser, Subcommand};
-use log::{LevelFilter, info, warn};
+use log::{info, warn, LevelFilter};
 use modularitea_libs::infrastructure::Pacman;
+use modularitea_libs::loader::TomlLoader;
 use serde::Serialize;
 use std::env;
+use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
 #[command(
@@ -12,40 +14,36 @@ use std::env;
     long_about = None
 )]
 struct Cli {
+    /// Directory containing profile TOML files
+    #[arg(long, default_value = "/usr/share/tealinux-modularity/profiles")]
+    profiles_dir: PathBuf,
+
     #[command(subcommand)]
     command: Commands,
 }
 
 #[derive(Subcommand)]
 enum Commands {
-    Install { profile: String },
+    Install {
+        profile: String,
+    },
 
-    Uninstall { profile: String },
+    Uninstall {
+        profile: String,
+    },
 
-    ListPackage { profile: String },
+    ListPackage {
+        profile: String,
+    },
+
+    /// List all available profiles
+    List,
 }
 
-#[derive(Debug)]
-pub struct Profile {
-    pub profile: &'static str,
-    pub package: &'static [&'static str],
-}
-
-pub const PROFILES: &[Profile] = &[
-    Profile {
-        profile: "devops",
-        package: &["docker", "dnsutils", "vim"],
-    },
-    Profile {
-        profile: "cybersecurity",
-        package: &["aircrack-ng", "hashcat", "whois"],
-    },
-];
-
-#[derive(Serialize)]
-struct ProfilePackages<'a> {
-    profile: &'a str,
-    packages: &'a [&'a str],
+#[derive(Debug, Serialize)]
+struct ProfilePackages {
+    profile: String,
+    packages: Vec<String>,
 }
 
 fn init_logger() {
@@ -63,101 +61,200 @@ fn init_logger() {
     let _ = builder.try_init();
 }
 
-// helper: find a profile by name
-fn find_profile(name: &str) -> Option<&'static Profile> {
-    PROFILES.iter().find(|p| p.profile == name)
+/// Resolve the profile TOML file path.
+/// Tries: exact path, then `<profiles_dir>/<name>.toml`.
+fn resolve_profile_path(profiles_dir: &Path, name: &str) -> Option<PathBuf> {
+    // If name is an explicit path that exists, use it
+    let direct = PathBuf::from(name);
+    if direct.exists() {
+        return Some(direct);
+    }
+
+    // Try as filename inside profiles dir
+    let toml_path = profiles_dir.join(format!("{}.toml", name));
+    if toml_path.exists() {
+        return Some(toml_path);
+    }
+
+    None
 }
 
-fn install_profile(name: &str) {
-    match find_profile(name) {
-        Some(p) => {
-            info!("Installing profile: {}", name);
-            let pkgs: Vec<String> = p.package.iter().map(|s| s.to_string()).collect();
-            let ret = Pacman::install(&pkgs);
-
-            match ret {
-                Ok(retval) => {
-                    serde_json::to_string(&retval)
-                        .map(|json| println!("{}", json))
-                        .unwrap_or_else(|err| {
-                            warn!("Failed to serialize output for '{}': {}", name, err);
-                            eprintln!("Failed to serialize output.");
-                        });
-                },
-                Err(reterr) => {
-                    serde_json::to_string(&reterr)
-                        .map(|json| println!("{}", json))
-                        .unwrap_or_else(|err| {
-                            warn!("Failed to serialize error for '{}': {}", name, err);
-                            eprintln!("Failed to serialize error.");
-                        });
-                }
-            }
-        }
+fn install_profile(profiles_dir: &Path, name: &str) {
+    let path = match resolve_profile_path(profiles_dir, name) {
+        Some(p) => p,
         None => {
-            warn!("Profile '{}' not found", name);
+            warn!("Profile '{}' not found in {:?}", name, profiles_dir);
             eprintln!("Profile '{}' not found.", name);
+            std::process::exit(1);
+        }
+    };
+
+    let profile = match TomlLoader::load(&path) {
+        Ok(p) => p,
+        Err(e) => {
+            warn!("Failed to load profile '{}': {}", name, e);
+            eprintln!("Failed to load profile: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    info!("Installing profile: {} ({})", profile.meta.name, name);
+
+    let pkgs = &profile.packages.install;
+    if pkgs.is_empty() {
+        println!("{{\"exit_code\":0,\"stdout\":\"No packages to install\",\"stderr\":\"\"}}");
+        return;
+    }
+
+    let ret = Pacman::install(pkgs);
+    match ret {
+        Ok(retval) => {
+            serde_json::to_string(&retval)
+                .map(|json| println!("{}", json))
+                .unwrap_or_else(|err| {
+                    warn!("Failed to serialize output for '{}': {}", name, err);
+                    eprintln!("Failed to serialize output.");
+                });
+        }
+        Err(reterr) => {
+            serde_json::to_string(&reterr)
+                .map(|json| println!("{}", json))
+                .unwrap_or_else(|err| {
+                    warn!("Failed to serialize error for '{}': {}", name, err);
+                    eprintln!("Failed to serialize error.");
+                });
+        }
+    }
+}
+
+fn uninstall_profile(profiles_dir: &Path, name: &str) {
+    let path = match resolve_profile_path(profiles_dir, name) {
+        Some(p) => p,
+        None => {
+            warn!("Profile '{}' not found in {:?}", name, profiles_dir);
+            eprintln!("Profile '{}' not found.", name);
+            std::process::exit(1);
+        }
+    };
+
+    let profile = match TomlLoader::load(&path) {
+        Ok(p) => p,
+        Err(e) => {
+            warn!("Failed to load profile '{}': {}", name, e);
+            eprintln!("Failed to load profile: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    info!("Uninstalling profile: {} ({})", profile.meta.name, name);
+
+    let pkgs = &profile.packages.install;
+    if pkgs.is_empty() {
+        println!("{{\"exit_code\":0,\"stdout\":\"No packages to uninstall\",\"stderr\":\"\"}}");
+        return;
+    }
+
+    let ret = Pacman::remove(pkgs, false, false);
+    match ret {
+        Ok(retval) => {
+            serde_json::to_string(&retval)
+                .map(|json| println!("{}", json))
+                .unwrap_or_else(|err| {
+                    warn!("Failed to serialize output for '{}': {}", name, err);
+                    eprintln!("Failed to serialize output.");
+                });
+        }
+        Err(reterr) => {
+            serde_json::to_string(&reterr)
+                .map(|json| println!("{}", json))
+                .unwrap_or_else(|err| {
+                    warn!("Failed to serialize error for '{}': {}", name, err);
+                    eprintln!("Failed to serialize error.");
+                });
+        }
+    }
+}
+
+fn list_packages(profiles_dir: &Path, name: &str) {
+    let path = match resolve_profile_path(profiles_dir, name) {
+        Some(p) => p,
+        None => {
+            warn!("Profile '{}' not found in {:?}", name, profiles_dir);
+            eprintln!("Profile '{}' not found.", name);
+            std::process::exit(1);
+        }
+    };
+
+    let profile = match TomlLoader::load(&path) {
+        Ok(p) => p,
+        Err(e) => {
+            warn!("Failed to load profile '{}': {}", name, e);
+            eprintln!("Failed to load profile: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    info!("Listing packages for profile: {}", name);
+
+    let output = ProfilePackages {
+        profile: profile.meta.name,
+        packages: profile.packages.install,
+    };
+
+    match serde_json::to_string(&output) {
+        Ok(json) => println!("{}", json),
+        Err(err) => {
+            warn!("Failed to serialize packages for '{}': {}", name, err);
+            eprintln!("Failed to serialize package list.");
             std::process::exit(1);
         }
     }
 }
 
-fn uninstall_profile(name: &str) {
-    match find_profile(name) {
-        Some(p) => {
-            info!("Uninstalling profile: {}", name);
-            let pkgs: Vec<String> = p.package.iter().map(|s| s.to_string()).collect();
-            let ret = Pacman::remove(&pkgs, false);
+fn list_profiles(profiles_dir: &Path) {
+    if !profiles_dir.exists() {
+        eprintln!("Profiles directory does not exist: {:?}", profiles_dir);
+        std::process::exit(1);
+    }
 
-            match ret {
-                Ok(retval) => {
-                    serde_json::to_string(&retval)
-                        .map(|json| println!("{}", json))
-                        .unwrap_or_else(|err| {
-                            warn!("Failed to serialize output for '{}': {}", name, err);
-                            eprintln!("Failed to serialize output.");
-                        });
-                }
-                Err(reterr) => {
-                    serde_json::to_string(&reterr)
-                        .map(|json| println!("{}", json))
-                        .unwrap_or_else(|err| {
-                            warn!("Failed to serialize error for '{}': {}", name, err);
-                            eprintln!("Failed to serialize error.");
-                        });
-                }
-            }
-        }
-        None => {
-            warn!("Profile '{}' not found", name);
-            eprintln!("Profile '{}' not found.", name);
+    let entries = match std::fs::read_dir(profiles_dir) {
+        Ok(e) => e,
+        Err(e) => {
+            eprintln!("Failed to read profiles directory: {}", e);
             std::process::exit(1);
         }
-    }
-}
+    };
 
-fn list_packages(name: &str) {
-    match find_profile(name) {
-        Some(p) => {
-            info!("Listing packages for profile: {}", name);
+    let mut profiles = Vec::new();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().map_or(false, |ext| ext == "toml") {
+            match TomlLoader::load(&path) {
+                Ok(profile) => {
+                    let id = path
+                        .file_stem()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string();
 
-            let output = ProfilePackages {
-                profile: p.profile,
-                packages: p.package,
-            };
-
-            match serde_json::to_string(&output) {
-                Ok(json) => println!("{}", json),
-                Err(err) => {
-                    warn!("Failed to serialize packages for '{}': {}", name, err);
-                    eprintln!("Failed to serialize package list.");
-                    std::process::exit(1);
+                    profiles.push(serde_json::json!({
+                        "id": id,
+                        "name": profile.meta.name,
+                        "description": profile.meta.description,
+                        "package_count": profile.packages.install.len() + profile.packages.aur.len(),
+                    }));
+                }
+                Err(e) => {
+                    eprintln!("Warning: failed to parse {:?}: {}", path, e);
                 }
             }
         }
-        None => {
-            warn!("Profile '{}' not found", name);
-            eprintln!("Profile '{}' not found.", name);
+    }
+
+    match serde_json::to_string_pretty(&profiles) {
+        Ok(json) => println!("{}", json),
+        Err(err) => {
+            eprintln!("Failed to serialize profiles: {}", err);
             std::process::exit(1);
         }
     }
@@ -166,16 +263,37 @@ fn list_packages(name: &str) {
 fn main() {
     init_logger();
     let cli = Cli::parse();
+    let profiles_dir = &cli.profiles_dir;
+
+    // Also check dev path relative to binary
+    let effective_dir = if profiles_dir.exists() {
+        profiles_dir.clone()
+    } else if let Ok(exe) = std::env::current_exe() {
+        // Try ../profiles relative to the binary (dev mode)
+        let dev_path = exe
+            .parent()
+            .and_then(|p| p.parent())
+            .and_then(|p| p.parent())
+            .map(|p| p.join("profiles"));
+        dev_path
+            .filter(|p| p.exists())
+            .unwrap_or(profiles_dir.clone())
+    } else {
+        profiles_dir.clone()
+    };
 
     match cli.command {
         Commands::Install { profile } => {
-            install_profile(&profile);
+            install_profile(&effective_dir, &profile);
         }
         Commands::Uninstall { profile } => {
-            uninstall_profile(&profile);
+            uninstall_profile(&effective_dir, &profile);
         }
         Commands::ListPackage { profile } => {
-            list_packages(&profile);
+            list_packages(&effective_dir, &profile);
+        }
+        Commands::List => {
+            list_profiles(&effective_dir);
         }
     }
 }
