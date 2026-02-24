@@ -1,0 +1,20 @@
+{
+  "name": "minegrub",
+  "github_url": "https://github.com/Lxtharia/minegrub-theme",
+  "preview_image": "https://raw.githubusercontent.com/Lxtharia/minegrub-theme/dev/resources/preview_minegrub.png",
+  "description": "A Minecraft-inspired GRUB theme with pixel art and blocky design elements.",
+  "author": "Lxtharia",
+  "version": "1.0",
+  "steps": [
+    {
+      "type": "copy_dir",
+      "from": "${MANIFEST_DIR}/minegrub-theme",
+      "to": "/boot/grub/themes/"
+    },
+    {
+      "type": "set_grub_var",
+      "key": "GRUB_THEME",
+      "value": "/boot/grub/themes/minegrub-theme/theme.txt"
+    }
+  ]
+}
