@@ -12,10 +12,11 @@ the output of this program (listen on the table) is always json, please return t
 
 | feature name        | executable name               | status                          | comment                                                          |
 |---------------------|-------------------------------|---------------------------------|------------------------------------------------------------------|
-| profile installer   | modularitea-profile-installer | implemented, but in wrong place | allow to install spesific profile (a sets of package)            |
-| grub changer        | modularitea-grub-changer      | unimplemented, untested         | allow users to change their grub theme                           |
+| profile installer   | modularitea-profile-installer | implemented,                    |
+| grub changer        | modularitea-grub-changer      | implementing ....               | allow users to change their grub theme                           |
 | tools (enable swap) | modularitea-tools-enable-swap | unimplemented                   | allow users to enable swap (always ZSTD)                         |
 | tools (enable AI)   | modularitea-tools-enable-ai   | unimplemented                   | allow users to enable AI feature (by configuring systemd config) |
+| News feeds | -   | unimplemented                   | scrapping popular opensource sites news using its RSS feeds, and grab its contents |
 
 ## lists of non root feature
 
@@ -48,3 +49,23 @@ here is critical features
 - settings (WIP, this will contains a settings that change how tealinux behave, such ulimit, enable AI (yes/no), etc)
 
 for settings itself is not implemented yet, because change enable AI yes/no can be considered require systemd (if run as daemon)
+
+# Testing
+
+anything that prefixes with `test-` on folder `./src/bin` is a test, do not touch that.
+
+## coding rules
+
+The use of AI for producing or modifying code in this repository is allowed only under strict rules to prevent bad code, technical debt, regressions, or security/privilege mistakes.
+
+Rules
+- Human review required: every AI-assisted change must be reviewed and approved by a human maintainer before applying to commit.
+- No silent behavioral changes
+- High-risk areas must be done by human.
+- Small refactors only with tests: keep scope limited; large architectural changes require a design ADR and explicit team sign-off.
+- Revert policy: code merged without complying with these rules will be reverted and the PR author will be required to follow process.
+- Do not commit a lot of changes in one commit, its better have a lot of commit, but when problem occur. we just need to revert what wrong, not entire changes.
+
+# License
+
+GPL-2.0
