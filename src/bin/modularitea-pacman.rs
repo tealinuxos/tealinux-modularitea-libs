@@ -23,6 +23,8 @@ enum Commands {
         packages: Vec<String>,
         #[arg(short, long)]
         recursive: bool,
+        #[arg(short, long)]
+        force: bool,
     },
     /// Install package groups
     InstallGroup { groups: Vec<String> },
@@ -43,7 +45,8 @@ fn main() {
         Commands::Remove {
             packages,
             recursive,
-        } => Pacman::remove(&packages, recursive),
+            force,
+        } => Pacman::remove(&packages, recursive, force),
         Commands::InstallGroup { groups } => {
             // Pacman installs groups same as packages usually
             Pacman::install(&groups)

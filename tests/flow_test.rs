@@ -4,7 +4,6 @@ use modularitea_libs::planner::TaskPlanner;
 
 #[test]
 fn test_full_execution_flow() {
-    // 1. Prepare a complex TOML profile simulating a real TeaLinux customization
     let toml_input = r#"
         [meta]
         name = "gaming-station"

@@ -10,25 +10,18 @@ pub type TaskId = String;
 /// A single executable task
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
-    /// Unique task identifier
     pub id: TaskId,
 
-    /// Human-readable task name
     pub name: String,
 
-    /// Task description
     pub description: String,
 
-    /// The actual action to perform
     pub action: TaskAction,
 
-    /// Whether this task requires root privileges
     pub requires_root: bool,
 
-    /// Tasks that must complete before this one
     pub depends_on: Vec<TaskId>,
 
-    /// Whether this task can be rolled back
     pub rollback_action: Option<TaskAction>,
 
     /// Priority (lower = higher priority)

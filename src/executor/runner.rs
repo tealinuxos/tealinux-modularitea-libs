@@ -43,7 +43,7 @@ impl Executor {
                 }
                 let pkg_strs: Vec<&str> = packages.iter().map(|s| s.as_str()).collect();
                 args.extend(pkg_strs);
-                PrivilegeRunner::run_modularitea("pacman", "remove", &args[1..])?; // Fix args passing
+                PrivilegeRunner::run_modularitea("pacman", "remove", &args[1..])?;
             }
             TaskAction::PackageGroupInstall { groups } => {
                 let args: Vec<&str> = groups.iter().map(|s| s.as_str()).collect();
