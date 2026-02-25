@@ -1,0 +1,35 @@
+{
+  "name": "plasma-dark-1",
+  "github_url": "https://www.pling.com/p/1195799/",
+  "preview_image": "https://github.com/tealinuxos/plasma-dark-1/raw/master/assets/rule_of_thumb.png",
+  "description": "Default grub theme for TealinuxOS",
+  "author": "Fadhil Firmansyah",
+  "version": "1.0",
+  "steps": [
+    {
+      "type": "copy_dir",
+      "from": "${MANIFEST_DIR}/plasma-dark-1",
+      "to": "/boot/grub/themes/"
+    },
+    {
+      "type": "set_grub_var",
+      "key": "GRUB_THEME",
+      "value": "/boot/grub/themes/plasma-dark-1/theme.txt"
+    },
+    {
+      "type": "set_grub_var",
+      "key": "GRUB_TIMEOUT_STYLE",
+      "value": "menu"
+    },
+    {
+      "type": "set_grub_var",
+      "key": "GRUB_TERMINAL_OUTPUT",
+      "value": "gfxterm"
+    },
+    {
+      "type": "set_grub_var",
+      "key": "GRUB_GFXPAYLOAD_LINUX",
+      "value": "keep"
+    }
+  ]
+}
