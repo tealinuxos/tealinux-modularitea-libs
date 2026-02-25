@@ -50,6 +50,18 @@ here is critical features
 
 for settings itself is not implemented yet, because change enable AI yes/no can be considered require systemd (if run as daemon)
 
+# building
+
+you can build entire stuff in this repository by just
+
+```sh
+$ git clone git@github.com:tealinuxos/tealinux-modularitea-libs.git
+$ cd tealinux-modularitea-libs
+$ makepkg -si
+```
+
+and you'll get these tools installed in your `/usr/bin` directory. note that tools is not itendded to be used by human, meanwhile it used to be callable from tealinux-modularitea under `pkexec` execution.
+
 # Testing
 
 anything that prefixes with `test-` on folder `./src/bin` is a test, do not touch that.

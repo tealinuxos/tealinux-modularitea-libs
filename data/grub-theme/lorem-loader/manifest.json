@@ -1,0 +1,50 @@
+{
+  "name": "lorem-loader",
+  "github_url": "github.com/tealinuxos/lorem-loader/",
+  "preview_image": "https://github.com/tealinuxos/lorem-loader/raw/master/assets/rule_of_thumb.png",
+  "description": "Default grub theme for TealinuxOS",
+  "author": "Fadhil Firmansyah",
+  "version": "1.0",
+  "steps": [
+    {
+      "type": "copy_dir",
+      "from": "${MANIFEST_DIR}/lorem-loader",
+      "to": "/boot/grub/themes/"
+    },
+    {
+      "type": "set_grub_var",
+      "key": "GRUB_THEME",
+      "value": "/boot/grub/themes/lorem-loader/theme.txt"
+    },
+    {
+      "type": "set_grub_var",
+      "key": "GRUB_DISTRIBUTOR",
+      "value": "TeaLinuxOS"
+    },
+    {
+      "type": "set_grub_var",
+      "key": "GRUB_TIMEOUT_STYLE",
+      "value": "menu"
+    },
+    {
+      "type": "set_grub_var",
+      "key": "GRUB_TERMINAL_INPUT",
+      "value": "console"
+    },
+    {
+      "type": "set_grub_var",
+      "key": "GRUB_GFXMODE",
+      "value": "1920x1080,auto"
+    },
+    {
+      "type": "set_grub_var",
+      "key": "GRUB_GFXPAYLOAD_LINUX",
+      "value": "keep"
+    },
+    {
+      "type": "set_grub_var",
+      "key": "GRUB_CMDLINE_LINUX_DEFAULT",
+      "value": "loglevel=3"
+    }
+  ]
+}
