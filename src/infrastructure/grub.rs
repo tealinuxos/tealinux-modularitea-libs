@@ -3,17 +3,19 @@
 //! Handles GRUB configuration.
 
 use crate::error::{CommandOutput, ModulariteaError, Result};
+use ini::Ini;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
+use duct::cmd;
 
 pub struct Grub;
 
 impl Grub {
     pub const DEFAULT_CONFIG_PATH: &'static str = "/etc/default/grub";
+    // pub const DEFAULT_CONFIG_PATH: &'static str = "/home/fadhil_riyanto_guest/BALI64/tealinux-modularitea-libs2/testfiles/grub";
 
-    /// Set GRUB theme
     pub fn set_theme(theme_path: &str) -> Result<()> {
         Self::update_config("GRUB_THEME", theme_path)
     }
@@ -173,12 +175,13 @@ pub trait GrubInstructionExecutor {
     fn details(&self, theme_name: &str) -> Option<ThemeManifest>;
     fn apply_grub_theme(&self, theme_name: &str) -> Result<CommandOutput>;
     fn do_backup(&self) -> Result<CommandOutput>;
+    fn set_grub_var_with_ini(key: &str, value: &str) -> Result<()>;
 }
 
 impl GrubInstructionExecutor for GrubInstruction {
     fn new() -> Self {
         let manifest = Self::load_manifests().unwrap_or_default();
-
+        print!("Loaded manifests: {:#?}", manifest);
         GrubInstruction { manifest }
     }
 
@@ -195,6 +198,8 @@ impl GrubInstructionExecutor for GrubInstruction {
             operation: "read themes directory".into(),
             source: e,
         })?;
+
+        print!("DEBUG: {:?}", read_dir);
 
         for entry in read_dir {
             let entry = entry.map_err(|e| ModulariteaError::FilesystemError {
@@ -233,7 +238,6 @@ impl GrubInstructionExecutor for GrubInstruction {
                     ))
                 })?;
                 manifests.push(manifest);
-                break;
             }
         }
 
@@ -295,27 +299,13 @@ impl GrubInstructionExecutor for GrubInstruction {
                     cmds.push(cmd);
                 }
                 Step::SetGrubVar { key, value } => {
-                    let val_escaped = value.replace('"', "\\\"");
-                    let sed_cmd = format!(
-                        "sudo sed -i -E 's|^[[:space:]]*#?[[:space:]]*{}=.*|{}={}|' {}",
+                    Self::set_grub_var_with_ini(&key, &value)?;
+                    println!(
+                        "set {}={} in {} using ini parser",
                         key,
-                        key,
-                        val_escaped,
+                        value,
                         Grub::DEFAULT_CONFIG_PATH
                     );
-                    println!("{}", sed_cmd);
-                    cmds.push(sed_cmd);
-
-                    let ensure_cmd = format!(
-                        "sudo grep -q '^[[:space:]]*{}=' {} || sudo sh -c 'echo \"{}={}\" >> {}'",
-                        key,
-                        Grub::DEFAULT_CONFIG_PATH,
-                        key,
-                        val_escaped,
-                        Grub::DEFAULT_CONFIG_PATH
-                    );
-                    println!("{}", ensure_cmd);
-                    cmds.push(ensure_cmd);
                 }
                 Step::ReplaceInFile {
                     file,
@@ -333,6 +323,38 @@ impl GrubInstructionExecutor for GrubInstruction {
         println!("{}", regen);
         cmds.push(regen.clone());
 
+        for command in cmds {
+            let command = command.strip_prefix("sudo ").unwrap_or(&command).to_string();
+
+            let output = cmd("sudo", ["sh", "-c", command.as_str()]).run().map_err(|e| {
+                ModulariteaError::GrubError {
+                    operation: command.clone(),
+                    reason: e.to_string(),
+                }
+            })?;
+
+            let out = String::from_utf8_lossy(&output.stdout).to_string();
+            let err = String::from_utf8_lossy(&output.stderr).to_string();
+
+            if !out.is_empty() {
+                println!("{}", out);
+            }
+            if !err.is_empty() {
+                eprintln!("{}", err);
+            }
+
+            if !output.status.success() {
+                return Err(ModulariteaError::GrubError {
+                    operation: command.clone(),
+                    reason: format!(
+                        "exit code: {} stderr: {}",
+                        output.status.code().unwrap_or(-1),
+                        err
+                    ),
+                });
+            }
+        }
+
         let stdout = "OK".to_string();
 
         Ok(CommandOutput {
@@ -340,6 +362,43 @@ impl GrubInstructionExecutor for GrubInstruction {
             stdout,
             stderr: String::new(),
         })
+    }
+
+    fn set_grub_var_with_ini(key: &str, value: &str) -> Result<()> {
+        let mut conf = Ini::load_from_file(Grub::DEFAULT_CONFIG_PATH).map_err(|e| {
+            ModulariteaError::GrubError {
+                operation: format!("ini load {}", Grub::DEFAULT_CONFIG_PATH),
+                reason: e.to_string(),
+            }
+        })?;
+
+        let raw_value = if value.starts_with('"') && value.ends_with('"') && value.len() >= 2 {
+            value[1..value.len() - 1].to_string()
+        } else {
+            value.to_string()
+        };
+
+        conf.with_section(None::<String>)
+            .set(key.to_string(), raw_value.clone());
+
+        // for " symbol
+        for (_, prop) in conf.iter_mut() {
+            for (_, v) in prop.iter_mut() {
+                if !(v.starts_with('"') && v.ends_with('"')) {
+                    let escaped = v.replace('"', "\\\"");
+                    *v = format!("\"{}\"", escaped);
+                }
+            }
+        }
+
+        conf.write_to_file(Grub::DEFAULT_CONFIG_PATH).map_err(|e| {
+            ModulariteaError::GrubError {
+                operation: format!("ini write {}", Grub::DEFAULT_CONFIG_PATH),
+                reason: e.to_string(),
+            }
+        })?;
+
+        Ok(())
     }
 
     fn do_backup(&self) -> Result<CommandOutput> {
