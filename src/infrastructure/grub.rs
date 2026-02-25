@@ -176,6 +176,7 @@ pub trait GrubInstructionExecutor {
     fn apply_grub_theme(&self, theme_name: &str) -> Result<CommandOutput>;
     fn do_backup(&self) -> Result<CommandOutput>;
     fn set_grub_var_with_ini(key: &str, value: &str) -> Result<()>;
+    fn reset_grub_config() -> Result<()>;
 }
 
 impl GrubInstructionExecutor for GrubInstruction {
@@ -281,6 +282,8 @@ impl GrubInstructionExecutor for GrubInstruction {
                 s.to_string()
             }
         };
+
+        Self::reset_grub_config()?;
 
         let mut cmds: Vec<String> = Vec::new();
 
@@ -403,5 +406,21 @@ impl GrubInstructionExecutor for GrubInstruction {
 
     fn do_backup(&self) -> Result<CommandOutput> {
         todo!();
+    }
+
+    fn reset_grub_config() -> Result<()> {
+        Self::set_grub_var_with_ini("GRUB_DEFAULT", "0")?;
+        Self::set_grub_var_with_ini("GRUB_TIMEOUT", "5")?;
+        Self::set_grub_var_with_ini("GRUB_DISTRIBUTOR", "Arch")?;
+        Self::set_grub_var_with_ini("GRUB_CMDLINE_LINUX_DEFAULT", "loglevel=3 quiet")?;
+        Self::set_grub_var_with_ini("GRUB_CMDLINE_LINUX", "rootfstype=ext4")?;
+        Self::set_grub_var_with_ini("GRUB_PRELOAD_MODULES", "part_gpt part_msdos")?;
+        Self::set_grub_var_with_ini("GRUB_TIMEOUT_STYLE", "menu")?;
+        Self::set_grub_var_with_ini("GRUB_TERMINAL_INPUT", "console")?;
+        Self::set_grub_var_with_ini("GRUB_GFXMODE", "auto")?;
+        Self::set_grub_var_with_ini("GRUB_GFXPAYLOAD_LINUX", "keep")?;
+        Self::set_grub_var_with_ini("GRUB_DISABLE_RECOVERY", "true")?;
+
+        Ok(())
     }
 }
