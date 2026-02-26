@@ -1,20 +1,20 @@
 {
-  "name": "plasma-dark-1",
-  "github_url": "https://www.pling.com/p/1195799/",
-  "preview_image": "https://images.pling.com/img/00/00/47/92/24/1195799/e3b8220458f0496edc69e2de8a452a16c774.png",
-  "description": "A dark GRUB theme inspired by KDE Plasma's default dark theme.",
-  "author": "gabrielgry",
+  "name": "gradient-color",
+  "github_url": "https://github.com/MrVivekRajan/Grub-Themes",
+  "preview_image": "",
+  "description": "",
+  "author": "MrVivekRajan",
   "version": "1.0",
   "steps": [
     {
       "type": "copy_dir",
-      "from": "${MANIFEST_DIR}/plasma-dark-1",
+      "from": "${MANIFEST_DIR}/gradient-color",
       "to": "/boot/grub/themes/"
     },
     {
       "type": "set_grub_var",
       "key": "GRUB_THEME",
-      "value": "/boot/grub/themes/plasma-dark-1/theme.txt"
+      "value": "/boot/grub/themes/gradient-color/theme.txt"
     },
     {
       "type": "set_grub_var",

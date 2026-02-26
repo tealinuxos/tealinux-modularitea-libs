@@ -33,11 +33,6 @@
     },
     {
       "type": "set_grub_var",
-      "key": "GRUB_GFXMODE",
-      "value": "1920x1080,auto"
-    },
-    {
-      "type": "set_grub_var",
       "key": "GRUB_GFXPAYLOAD_LINUX",
       "value": "keep"
     },
