@@ -3,12 +3,13 @@
 //! Handles GRUB configuration.
 
 use crate::error::{CommandOutput, ModulariteaError, Result};
+use duct::cmd;
 use ini::Ini;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
-use duct::cmd;
+use crate::config;
 
 pub struct Grub;
 
@@ -150,6 +151,7 @@ pub enum Step {
 
 pub struct GrubInstruction {
     pub manifest: Vec<ThemeManifest>,
+    pub screen_resolution: Option<(u32, u32)>,
 }
 
 // note about this,
@@ -177,13 +179,14 @@ pub trait GrubInstructionExecutor {
     fn do_backup(&self) -> Result<CommandOutput>;
     fn set_grub_var_with_ini(key: &str, value: &str) -> Result<()>;
     fn reset_grub_config() -> Result<()>;
+    fn set_screen_resolution(self, width: u32, height: u32) -> Self;
 }
 
 impl GrubInstructionExecutor for GrubInstruction {
     fn new() -> Self {
         let manifest = Self::load_manifests().unwrap_or_default();
         print!("Loaded manifests: {:#?}", manifest);
-        GrubInstruction { manifest }
+        GrubInstruction { manifest, screen_resolution: None }
     }
 
     // this must be private
@@ -274,16 +277,17 @@ impl GrubInstructionExecutor for GrubInstruction {
 
         let expand = |s: &str| -> String {
             if s.contains("${MANIFEST_DIR}") {
-                match std::env::var("TEALINUX_GRUB_CHANGER_MANIFEST_DIR") {
-                    Ok(val) => s.replace("${MANIFEST_DIR}", &val),
-                    Err(_) => s.to_string(),
-                }
+                s.replace("${MANIFEST_DIR}", config::TEALINUX_GRUB_CHANGER_MANIFEST_DIR)
             } else {
                 s.to_string()
             }
         };
 
         Self::reset_grub_config()?;
+
+        if let Some((width, height)) = self.screen_resolution {
+            Self::set_grub_var_with_ini("GRUB_GFXMODE", &format!("{}x{}", width, height))?;
+        }
 
         let mut cmds: Vec<String> = Vec::new();
 
@@ -327,14 +331,17 @@ impl GrubInstructionExecutor for GrubInstruction {
         cmds.push(regen.clone());
 
         for command in cmds {
-            let command = command.strip_prefix("sudo ").unwrap_or(&command).to_string();
+            let command = command
+                .strip_prefix("sudo ")
+                .unwrap_or(&command)
+                .to_string();
 
-            let output = cmd("sudo", ["sh", "-c", command.as_str()]).run().map_err(|e| {
-                ModulariteaError::GrubError {
+            let output = cmd("sudo", ["sh", "-c", command.as_str()])
+                .run()
+                .map_err(|e| ModulariteaError::GrubError {
                     operation: command.clone(),
                     reason: e.to_string(),
-                }
-            })?;
+                })?;
 
             let out = String::from_utf8_lossy(&output.stdout).to_string();
             let err = String::from_utf8_lossy(&output.stderr).to_string();
@@ -394,12 +401,11 @@ impl GrubInstructionExecutor for GrubInstruction {
             }
         }
 
-        conf.write_to_file(Grub::DEFAULT_CONFIG_PATH).map_err(|e| {
-            ModulariteaError::GrubError {
+        conf.write_to_file(Grub::DEFAULT_CONFIG_PATH)
+            .map_err(|e| ModulariteaError::GrubError {
                 operation: format!("ini write {}", Grub::DEFAULT_CONFIG_PATH),
                 reason: e.to_string(),
-            }
-        })?;
+            })?;
 
         Ok(())
     }
@@ -422,5 +428,10 @@ impl GrubInstructionExecutor for GrubInstruction {
         Self::set_grub_var_with_ini("GRUB_DISABLE_RECOVERY", "true")?;
 
         Ok(())
+    }
+
+    fn set_screen_resolution(mut self, width: u32, height: u32) -> Self {
+        self.screen_resolution = Some((width, height));
+        self
     }
 }

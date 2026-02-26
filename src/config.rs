@@ -1,0 +1,1 @@
+pub const TEALINUX_GRUB_CHANGER_MANIFEST_DIR: &str = "/home/fadhil_riyanto_guest/BALI64/tealinux-modularitea-libs2/data/grub-theme";

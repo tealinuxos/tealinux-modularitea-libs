@@ -9,6 +9,7 @@ pub mod infrastructure;
 pub mod loader;
 pub mod planner;
 pub mod privilege;
+pub mod config;
 
 // Re-export toml crate for downstream users
 pub use toml;
