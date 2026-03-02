@@ -7,6 +7,7 @@ pub mod fs;
 pub mod grub;
 pub mod pacman;
 pub mod systemctl;
+pub mod news_parser;
 
 pub use fs::Fs;
 pub use grub::Grub;
