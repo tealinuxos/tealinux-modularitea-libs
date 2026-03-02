@@ -13,7 +13,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Set GRUB theme
-    Theme { path: String },
+    Theme { theme_name: String },
     /// Set timeout
     Timeout { seconds: u32 },
     /// Set default entry
@@ -28,9 +28,9 @@ fn main() {
     let cli = Cli::parse();
 
     let result = match cli.command {
-        Commands::Theme { path } => Grub::set_theme(&path).map(|_| ok_output()),
-        Commands::Timeout { seconds } => Grub::set_timeout(seconds).map(|_| ok_output()),
-        Commands::Default { entry } => Grub::set_default(&entry).map(|_| ok_output()),
+        Commands::Theme { theme_name } => Grub::set_theme(&theme_name).map(|_| ok_output()),
+        Commands::Timeout { seconds } => Grub::set_timeout(seconds).map(|_| ok_output()), // self-notes: need remove
+        Commands::Default { entry } => Grub::set_default(&entry).map(|_| ok_output()), // self-notes: need remove
         Commands::Cmdline { params: _ } => {
             // Logic for appending parameters needs implementation in infrastructure/grub.rs first?
             // For now, let's say it's not fully supported or I implement a placeholder

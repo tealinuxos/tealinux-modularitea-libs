@@ -2,6 +2,7 @@
 //!
 //! Handles GRUB configuration.
 
+use crate::config;
 use crate::error::{CommandOutput, ModulariteaError, Result};
 use duct::cmd;
 use ini::Ini;
@@ -9,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::config;
 
 pub struct Grub;
 
@@ -152,6 +152,7 @@ pub enum Step {
 pub struct GrubInstruction {
     pub manifest: Vec<ThemeManifest>,
     pub screen_resolution: Option<(u32, u32)>,
+    pub tealinux_grub_changer_manifest_dir: Option<String>,
 }
 
 // note about this,
@@ -180,13 +181,18 @@ pub trait GrubInstructionExecutor {
     fn set_grub_var_with_ini(key: &str, value: &str) -> Result<()>;
     fn reset_grub_config() -> Result<()>;
     fn set_screen_resolution(self, width: u32, height: u32) -> Self;
+    fn override_tealinux_grub_changer_manifest_dir(self, path: String) -> Self;
 }
 
 impl GrubInstructionExecutor for GrubInstruction {
     fn new() -> Self {
         let manifest = Self::load_manifests().unwrap_or_default();
         print!("Loaded manifests: {:#?}", manifest);
-        GrubInstruction { manifest, screen_resolution: None }
+        GrubInstruction {
+            manifest,
+            screen_resolution: None,
+            tealinux_grub_changer_manifest_dir: None
+        }
     }
 
     // this must be private
@@ -263,6 +269,11 @@ impl GrubInstructionExecutor for GrubInstruction {
         self.manifest.iter().find(|m| m.name == theme_name).cloned()
     }
 
+    fn override_tealinux_grub_changer_manifest_dir(mut self, path: String) -> Self {
+        self.tealinux_grub_changer_manifest_dir = Some(path);
+        return self;
+    }
+
     fn apply_grub_theme(&self, theme_name: &str) -> Result<CommandOutput> {
         // arr
         let manifest = self
@@ -277,7 +288,11 @@ impl GrubInstructionExecutor for GrubInstruction {
 
         let expand = |s: &str| -> String {
             if s.contains("${MANIFEST_DIR}") {
-                s.replace("${MANIFEST_DIR}", config::TEALINUX_GRUB_CHANGER_MANIFEST_DIR)
+                s.replace(
+                    "${MANIFEST_DIR}",
+                            &self.tealinux_grub_changer_manifest_dir.clone().unwrap() /* this is safe to unwrap */
+,
+                )
             } else {
                 s.to_string()
             }
