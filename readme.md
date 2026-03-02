@@ -2,6 +2,10 @@
 
 this is a library of [github.com/tealinuxos/tealinux-modularity](github.com/tealinuxos/tealinux-modularity) that give you headless way to testing or implement in on other stuff (GUI, CLI?)
 
+# API documentation
+
+[click this](api.md)
+
 ## list of feature (implemeted and not yet)
 
 **HARD NOTE, THIS FEATURE BELOW IS LISTED AS EXTERNAL EXECUTABLE BECAUSE ITS NEED ROOT TO RUN**
