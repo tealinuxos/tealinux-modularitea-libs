@@ -432,7 +432,7 @@ impl GrubInstructionExecutor for GrubInstruction {
     fn reset_grub_config() -> Result<()> {
         Self::set_grub_var_with_ini("GRUB_DEFAULT", "0")?;
         Self::set_grub_var_with_ini("GRUB_TIMEOUT", "5")?;
-        Self::set_grub_var_with_ini("GRUB_DISTRIBUTOR", "Arch")?;
+        Self::set_grub_var_with_ini("GRUB_DISTRIBUTOR", "TealinuxOS")?;
         Self::set_grub_var_with_ini("GRUB_CMDLINE_LINUX_DEFAULT", "loglevel=3 quiet")?;
         Self::set_grub_var_with_ini("GRUB_CMDLINE_LINUX", "rootfstype=ext4")?;
         Self::set_grub_var_with_ini("GRUB_PRELOAD_MODULES", "part_gpt part_msdos")?;
