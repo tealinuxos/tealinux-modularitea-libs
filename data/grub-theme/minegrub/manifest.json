@@ -1,7 +1,7 @@
 {
   "name": "minegrub",
   "github_url": "https://github.com/Lxtharia/minegrub-theme",
-  "preview_image": "https://raw.githubusercontent.com/Lxtharia/minegrub-theme/dev/resources/preview_minegrub.png",
+  "preview_image": "https://cdn.jsdelivr.net/gh/tealinuxos/tealinux-modularitea-libs@master/data/grub-theme/minegrub/200.png",
   "description": "A Minecraft-inspired GRUB theme with pixel art and blocky design elements.",
   "author": "Lxtharia",
   "version": "1.0",
