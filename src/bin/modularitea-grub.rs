@@ -1,66 +1,38 @@
-use clap::{Parser, Subcommand};
-use modularitea_libs::infrastructure::Grub;
-use std::process::exit;
+use modularitea_libs::infrastructure::grub::{GrubInstruction, GrubInstructionExecutor};
+use serde_json::json;
+use std::process;
 
-#[derive(Parser)]
-#[command(name = "modularitea-grub")]
-#[command(about = "Modularitea GRUB Helper (Root Only)")]
-struct Cli {
-    #[command(subcommand)]
-    command: Commands,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    /// Set GRUB theme
-    Theme { theme_name: String },
-    /// Set timeout
-    Timeout { seconds: u32 },
-    /// Set default entry
-    Default { entry: String },
-    /// Set kernel parameters
-    Cmdline { params: Vec<String> },
-    /// Regenerate configuration
-    Regenerate,
+fn print_json_error(message: &str) {
+    println!("{}", json!({ "status": "error", "message": message }));
 }
 
 fn main() {
-    let cli = Cli::parse();
-
-    let result = match cli.command {
-        Commands::Theme { theme_name } => Grub::set_theme(&theme_name).map(|_| ok_output()),
-        Commands::Timeout { seconds } => Grub::set_timeout(seconds).map(|_| ok_output()), // self-notes: need remove
-        Commands::Default { entry } => Grub::set_default(&entry).map(|_| ok_output()), // self-notes: need remove
-        Commands::Cmdline { params: _ } => {
-            // Logic for appending parameters needs implementation in infrastructure/grub.rs first?
-            // For now, let's say it's not fully supported or I implement a placeholder
-            // actually I didn't implement set_cmdline in infrastructure/grub.rs yet!
-            // I should update infrastructure/grub.rs later if needed, but for now I'll just error or todo
-            eprintln!("Cmdline modification not fully implemented yet");
-            exit(1);
+    let themes_dir = match std::env::args().nth(1) {
+        Some(v) => v,
+        None => {
+            print_json_error("missing argument: <themes_dir_path>");
+            process::exit(1);
         }
-        Commands::Regenerate => Grub::regenerate(),
     };
 
-    match result {
-        Ok(output) => {
-            if !output.success() {
-                eprintln!("{}", output.stderr);
-                exit(output.exit_code);
-            }
-            println!("{}", output.stdout);
+    let theme_name = match std::env::args().nth(2) {
+        Some(v) => v,
+        None => {
+            print_json_error("missing argument: <theme_name>");
+            process::exit(1);
+        }
+    };
+
+    let grub = GrubInstruction::with_themes_dir(themes_dir)
+        .set_screen_resolution(1920, 1080);
+
+    match grub.apply_grub_theme(&theme_name) {
+        Ok(_) => {
+            println!("ok");
         }
         Err(e) => {
-            eprintln!("Error: {}", e);
-            exit(1);
+            print_json_error(&e.to_string());
+            process::exit(1);
         }
-    }
-}
-
-fn ok_output() -> modularitea_libs::error::CommandOutput {
-    modularitea_libs::error::CommandOutput {
-        exit_code: 0,
-        stdout: "Success".to_string(),
-        stderr: "".to_string(),
     }
 }

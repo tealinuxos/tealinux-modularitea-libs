@@ -153,6 +153,8 @@ pub struct GrubInstruction {
     pub manifest: Vec<ThemeManifest>,
     pub screen_resolution: Option<(u32, u32)>,
     pub tealinux_grub_changer_manifest_dir: Option<String>,
+    pub themes_dir: String,
+    pub enable_debug_print: bool,
 }
 
 // note about this,
@@ -181,27 +183,44 @@ pub trait GrubInstructionExecutor {
     fn set_grub_var_with_ini(key: &str, value: &str) -> Result<()>;
     fn reset_grub_config() -> Result<()>;
     fn set_screen_resolution(self, width: u32, height: u32) -> Self;
+
+
+    /* do not use this method, will removed soon... */
     fn override_tealinux_grub_changer_manifest_dir(self, path: String) -> Self;
+
+    /* do not use this method, will removed soon... */
+    fn set_tealinux_grub_changer_manifest_dir(self, path: String) -> Self;
 }
 
-impl GrubInstructionExecutor for GrubInstruction {
-    fn new() -> Self {
-        let manifest = Self::load_manifests().unwrap_or_default();
-        print!("Loaded manifests: {:#?}", manifest);
-        GrubInstruction {
-            manifest,
-            screen_resolution: None,
-            tealinux_grub_changer_manifest_dir: None
-        }
+const DEFAULT_THEMES_DIR: &str =
+    "/home/fadhil_riyanto_guest/BALI64/tealinux-modularitea-libs2/data/grub-theme";
+
+impl GrubInstruction {
+    fn set_themes_dir(&mut self, path: String) {
+        self.themes_dir = path;
     }
 
-    // this must be private
-    fn load_manifests() -> Result<Vec<ThemeManifest>> {
-        let themes_dir: &str =
-            // this is hardcoded for now
-            // don;t ask why, just let it be. 
-            // --- IGNORE it ---
-            "/home/fadhil_riyanto_guest/BALI64/tealinux-modularitea-libs2/data/grub-theme";
+    fn get_themes_dir(&self) -> &str {
+        &self.themes_dir
+    }
+
+    pub fn with_themes_dir(path: String) -> Self {
+        let mut this = GrubInstruction {
+            manifest: Vec::new(),
+            screen_resolution: None,
+            tealinux_grub_changer_manifest_dir: None,
+            themes_dir: DEFAULT_THEMES_DIR.to_string(),
+            enable_debug_print: false,
+        };
+
+        this.set_themes_dir(path);
+        this.manifest = Self::load_manifests_from_dir(this.get_themes_dir()).unwrap_or_default();
+        print!("Loaded manifests: {:#?}", this.manifest);
+
+        this
+    }
+
+    fn load_manifests_from_dir(themes_dir: &str) -> Result<Vec<ThemeManifest>> {
         let mut manifests = Vec::new();
 
         let read_dir = fs::read_dir(themes_dir).map_err(|e| ModulariteaError::FilesystemError {
@@ -229,9 +248,9 @@ impl GrubInstructionExecutor for GrubInstruction {
             }
 
             let theme_path = entry.path();
-
             let candidate = theme_path.join("manifest.json");
             println!("content: {}", candidate.display());
+
             if candidate.is_file() {
                 let content = fs::read_to_string(&candidate).map_err(|e| {
                     ModulariteaError::FilesystemError {
@@ -252,6 +271,16 @@ impl GrubInstructionExecutor for GrubInstruction {
         }
 
         Ok(manifests)
+    }
+}
+
+impl GrubInstructionExecutor for GrubInstruction {
+    fn new() -> Self {
+        Self::with_themes_dir(DEFAULT_THEMES_DIR.to_string())
+    }
+
+    fn load_manifests() -> Result<Vec<ThemeManifest>> {
+        Self::load_manifests_from_dir(DEFAULT_THEMES_DIR)
     }
 
     fn get_all_theme_available(&self) -> Vec<ThemeManifest> {
@@ -286,13 +315,14 @@ impl GrubInstructionExecutor for GrubInstruction {
                 theme_name
             )))?;
 
+        let themes_dir = self
+            .tealinux_grub_changer_manifest_dir
+            .as_deref()
+            .unwrap_or(self.get_themes_dir());
+
         let expand = |s: &str| -> String {
             if s.contains("${MANIFEST_DIR}") {
-                s.replace(
-                    "${MANIFEST_DIR}",
-                            &self.tealinux_grub_changer_manifest_dir.clone().unwrap() /* this is safe to unwrap */
-,
-                )
+                s.replace("${MANIFEST_DIR}", themes_dir)
             } else {
                 s.to_string()
             }
@@ -447,6 +477,13 @@ impl GrubInstructionExecutor for GrubInstruction {
 
     fn set_screen_resolution(mut self, width: u32, height: u32) -> Self {
         self.screen_resolution = Some((width, height));
+        self
+    }
+
+    fn set_tealinux_grub_changer_manifest_dir(mut self, path: String) -> Self {
+        self.tealinux_grub_changer_manifest_dir = Some(path.clone());
+        self.set_themes_dir(path);
+        self.manifest = Self::load_manifests_from_dir(self.get_themes_dir()).unwrap_or_default();
         self
     }
 }

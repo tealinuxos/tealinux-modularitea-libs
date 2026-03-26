@@ -108,20 +108,23 @@ here the example output (truncated)
 
 this feature is was ready to implement, here example API call
 
-first, creating a context
+first, creating a context prelude
 
 
 ```rust
-    let ret = GrubInstruction::new()
-        .set_screen_resolution(1920, 1080)  
-        .override_tealinux_grub_changer_manifest_dir("/home/fadhil_riyanto_guest/BALI64/tealinux-modularitea-libs2/data/grub-theme".to_string());
+    let ret = GrubInstruction::with_themes_dir(
+        "/home/fadhil_riyanto_guest/BALI64/tealinux-modularitea-libs/data/grub-theme".to_string(),
+    )
+    .set_screen_resolution(1920, 1080);
 ```
 
-note that `set_screen_resolution` and `override_tealinux_grub_changer_manifest_dir` is madatory, fill `override_tealinux_grub_changer_manifest_dir` with location of theme pack (which ./data/grub-theme) in this repo.
+note that `set_screen_resolution` is madatory, fill `with_themes_dir` with location of theme pack (which ./data/grub-theme) in this repo.
+
+SUGGEST: you could place a file-of `./data/grub-theme` in `/opt` or somewhere.
 
 ## get lists of all themes available
 
-use this API as initializator in order building frontend tile.
+use this API to get all themes available.
 
 call
 
@@ -192,6 +195,10 @@ example output
 
 ## applying theme
 
+CAVEAT: DO NOT USE THIS METHOD IN RAW FORM, INSTEAD USE PREBUILD BINARIES ON `./target/release/modularitea-grub <theme_dir__hardcoded_before_call_pkexec> <theme_name>` to apply the changes. this allow you to safetly use pkexec btw.
+
+the binary itself was available to be install using pacman
+
 ```rust
 let _ = ret.apply_grub_theme(&theme);
 ```
@@ -200,3 +207,6 @@ where `theme` is a string theme name [ref](#get-lists-of-all-themes-available)
 
 example output [https://gist.githubusercontent.com/fadhil-riyanto/c837808d90d3e8f2e25304a55135b6b9/raw/fab91dc4c4469bbbbbacd83aa14bb964dbd76dd5/Mon%2520Mar%2520%25202%252002:54:03%2520UTC%25202026](https://gist.githubusercontent.com/fadhil-riyanto/c837808d90d3e8f2e25304a55135b6b9/raw/fab91dc4c4469bbbbbacd83aa14bb964dbd76dd5/Mon%2520Mar%2520%25202%252002:54:03%2520UTC%25202026)
 
+
+
+Last edited: Thu Mar 26 11:35:22 AM WIB 2026 by Fadhil Riyanto 
