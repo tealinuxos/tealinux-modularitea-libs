@@ -116,13 +116,22 @@ impl Paru {
         Ok(output.status.success())
     }
 
-    /// Run a paru command and return the output
+    /// Run a paru command and return the output.
+    ///
+    /// Automatically injects `--sudo pkexec --skipreview` so that paru uses
+    /// the polkit graphical dialog for privilege escalation instead of sudo
+    /// (which requires a TTY that is not available inside a Tauri app).
     fn run_paru(args: &[&str]) -> CommandResult<CommandOutput> {
+        let mut full_args: Vec<&str> = vec!["--sudo", "pkexec", "--skipreview"];
+        full_args.extend_from_slice(args);
+
+        eprintln!("[paru] Running: paru {}", full_args.join(" "));
+
         let output = Command::new("paru")
-            .args(args)
+            .args(&full_args)
             .output()
             .map_err(|e| CommandErrorReturn {
-                operation: format!("paru {}", args.join(" ")),
+                operation: format!("paru {}", full_args.join(" ")),
                 exit_code: None,
                 stderr: e.to_string(),
             })?;
@@ -132,7 +141,7 @@ impl Paru {
 
         if !output.status.success() {
             return Err(CommandErrorReturn {
-                operation: format!("paru {}", args.join(" ")),
+                operation: format!("paru {}", full_args.join(" ")),
                 exit_code: output.status.code(),
                 stderr,
             });
