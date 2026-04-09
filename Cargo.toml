@@ -25,6 +25,14 @@ path = "src/bin/modularitea-settings.rs"
 name = "modularitea-systemctl"
 path = "src/bin/modularitea-systemctl.rs"
 
+[[bin]]
+name = "modularitea-package-cache-cleaner"
+path = "src/bin/modularitea-package-cache-cleaner.rs"
+
+[[bin]]
+name = "modularitea-swap"
+path = "src/bin/modularitea-swap.rs"
+
 [dependencies]
 clap = { version = "4.5.56", features = ["derive"] }
 tokio = { version = "1.49.0", features = ["full"] }

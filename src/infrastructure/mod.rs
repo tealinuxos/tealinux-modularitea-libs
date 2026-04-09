@@ -13,3 +13,4 @@ pub use fs::Fs;
 pub use grub::Grub;
 pub use pacman::Pacman;
 pub use systemctl::Systemctl;
+pub use tools_utils::{mode, PackageCacheCleaner, Swap, ToolsUtils};
