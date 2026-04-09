@@ -10,6 +10,7 @@ pub mod pacman;
 pub mod paru;
 pub mod systemctl;
 pub mod news_parser;
+pub mod tools_utils;
 
 pub use aur_client::AurClient;
 pub use fs::Fs;
