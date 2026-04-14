@@ -24,8 +24,8 @@ impl PackageCacheCleaner {
 	pub fn clean() -> Result<CommandOutput> {
 		let cmd = "rm -rf /var/cache/pacman/pkg/*";
 
-		let output = Command::new("sh")
-			.args(["-c", cmd])
+		let output = Command::new("pkexec")
+			.args([cmd])
 			.output()
 			.map_err(|e| ModulariteaError::CommandError {
 				command: cmd.to_string(),
@@ -160,14 +160,21 @@ impl Swap {
 	}
 }
 
-pub struct MirrorUtils;
+pub struct MirrorUtils {
+	pub country: Option<String>
+}
 
 impl MirrorUtils {
-	pub fn refresh_fastest_mirror() -> Result<CommandOutput> {
-		let cmd = "reflector --country Indonesia --save /etc/pacman.d/mirrorlist --verbose";
+	pub fn set_country(country: Option<String>) -> Self {
+		Self { country }
+	}
+
+	pub fn refresh_fastest_mirror(&self) -> Result<CommandOutput> {
+		let country = self.country.as_deref().unwrap_or("Indonesia");
+		let cmd = format!("pkexec reflector --country {} --save /etc/pacman.d/mirrorlist --verbose", country);
 
 		let output = Command::new("sh")
-			.args(["-c", cmd])
+			.args(["-c", &cmd])
 			.output()
 			.map_err(|e| ModulariteaError::CommandError {
 				command: cmd.to_string(),
@@ -193,9 +200,9 @@ impl MirrorUtils {
 		})
 	}
 
-	pub fn try_refresh_fastest_mirror() -> bool {
-		Self::refresh_fastest_mirror().is_ok()
-	}
+	// pub fn try_refresh_fastest_mirror() -> bool {
+	// 	// Self::refresh_fastest_mirror().is_ok()
+	// }
 }
 
 pub struct DnsSwitcher;

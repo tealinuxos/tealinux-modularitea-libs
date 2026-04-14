@@ -208,5 +208,83 @@ where `theme` is a string theme name [ref](#get-lists-of-all-themes-available)
 example output [https://gist.githubusercontent.com/fadhil-riyanto/c837808d90d3e8f2e25304a55135b6b9/raw/fab91dc4c4469bbbbbacd83aa14bb964dbd76dd5/Mon%2520Mar%2520%25202%252002:54:03%2520UTC%25202026](https://gist.githubusercontent.com/fadhil-riyanto/c837808d90d3e8f2e25304a55135b6b9/raw/fab91dc4c4469bbbbbacd83aa14bb964dbd76dd5/Mon%2520Mar%2520%25202%252002:54:03%2520UTC%25202026)
 
 
+## settings API
+
+TL;DR, this api allow frontend to dictate how system behave. currently we only support this kind of stuff
+
+- Package Cache Cleaner: frontend note, this is only a single button like "clear now"
+- swap enable/disable, its a toogle object
+- Mirror Utils, allow you refresh mirror without doing anything. frontend notes: use dropdown.
+- DNS switcher, this is also dropdown (i.e, cloudflare, or google)
+- CpuBooster, this is a dropdown with value fixed powersave, performance, ondemand
+
+so, this is how you can use it
+
+### package cache cleaner
+
+please use API
+
+```rust
+use modularitea_libs::infrastructure::PackageCacheCleaner;
+
+
+// ... a button is triggered
+if PackageCacheCleaner::try_clean_and_check() {
+    // send popup clean success
+} else {
+    // send popup failed
+    // NOTE: the reason is WIP
+}
+```
+
+### swap enable/disable
+
+for swap, we can't use API because it uses many sistemd implementation which mean multiple pkexec calls, for alternative please use `modularitea-swap <on or off>`
+
+the modularitea-swap binary itself is included in tealinuxos iso, so you can just call them in yourown terminal and go.
+
+### enable or disable mirrors
+
+please use API
+note: this API was compliant with pkexec
+
+```rust
+use modularitea_libs::infrastructure::tools_utils::MirrorUtils;
+
+/* read country list here --> https://archlinux.org/mirrors/status/ */
+let ret: MirrorUtils = MirrorUtils::set_country(Some("Indonesia".to_string()));
+match ret.refresh_fastest_mirror() {
+    Ok(output) => {
+        // send popup success
+    }
+    Err(e) => {
+        // send popup failed
+    }
+}
+```
+
+
+### DNS Switcher
+
+same comment about swap, this feature has it own binary name called, please use it like this
+
+`modularitea-dns-changer quad9`
+
+### CPU booster
+
+please use API
+
+```rust
+match CpuBooster::set_profile(&profile) {
+    Ok(output) => {
+        // send popup success
+    }
+    Err(err) => {
+        // send popup failed
+    }
+}
+```
+
+
 
 Last edited: Thu Mar 26 11:35:22 AM WIB 2026 by Fadhil Riyanto 

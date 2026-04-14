@@ -1,7 +1,10 @@
 use modularitea_libs::infrastructure::tools_utils::MirrorUtils;
 
 fn main() {
-	match MirrorUtils::refresh_fastest_mirror() {
+
+	/* read here https://archlinux.org/mirrors/status/  */
+	let ret: MirrorUtils = MirrorUtils::set_country(Some("Indonesia".to_string()));
+	match ret.refresh_fastest_mirror() {
 		Ok(output) => {
 			println!("Mirror refresh success (exit_code={}):", output.exit_code);
 			if !output.stdout.trim().is_empty() {
