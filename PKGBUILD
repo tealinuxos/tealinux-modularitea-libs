@@ -31,6 +31,14 @@ package() {
     install -Dm755 "$srcdir/target/release/modularitea-grub" \
         "$pkgdir/usr/bin/modularitea-grub"
 
+    install -Dm755 "$srcdir/target/release/modularitea-swap" \
+        "$pkgdir/usr/bin/modularitea-swap"
+
+    install -Dm755 "$srcdir/target/release/modularitea-dns-changer" \
+        "$pkgdir/usr/bin/modularitea-dns-changer"
+
+    
+
     install -d "$pkgdir/usr/share/modularitea-libs"
     cp -a "$srcdir/../data/." "$pkgdir/usr/share/modularitea-libs/"
 }
