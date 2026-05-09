@@ -1,0 +1,35 @@
+{
+  "name": "aesthetic",
+  "github_url": "https://github.com/MrVivekRajan/Grub-Themes",
+  "preview_image": "https://cdn.jsdelivr.net/gh/tealinuxos/tealinux-modularitea-libs@master/data/grub-theme/aesthetic/200.png",
+  "description": "",
+  "author": "MrVivekRajan",
+  "version": "1.0",
+  "steps": [
+    {
+      "type": "copy_dir",
+      "from": "${MANIFEST_DIR}/aesthetic",
+      "to": "/boot/grub/themes/"
+    },
+    {
+      "type": "set_grub_var",
+      "key": "GRUB_THEME",
+      "value": "/boot/grub/themes/aesthetic/theme.txt"
+    },
+    {
+      "type": "set_grub_var",
+      "key": "GRUB_TIMEOUT_STYLE",
+      "value": "menu"
+    },
+    {
+      "type": "set_grub_var",
+      "key": "GRUB_TERMINAL_OUTPUT",
+      "value": "gfxterm"
+    },
+    {
+      "type": "set_grub_var",
+      "key": "GRUB_GFXPAYLOAD_LINUX",
+      "value": "keep"
+    }
+  ]
+}

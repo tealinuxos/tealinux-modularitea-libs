@@ -25,6 +25,14 @@ path = "src/bin/modularitea-settings.rs"
 name = "modularitea-systemctl"
 path = "src/bin/modularitea-systemctl.rs"
 
+[[bin]]
+name = "modularitea-package-cache-cleaner"
+path = "src/bin/modularitea-package-cache-cleaner.rs"
+
+[[bin]]
+name = "modularitea-swap"
+path = "src/bin/modularitea-swap.rs"
+
 [dependencies]
 clap = { version = "4.5.56", features = ["derive"] }
 tokio = { version = "1.49.0", features = ["full"] }
@@ -35,7 +43,10 @@ tracing = "0.1"
 log = "0.4.29"
 serde_json = "1.0.149"
 env_logger = "0.11.9"
-reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+duct = "1.1.1"
+rust-ini = "0.21.3"
+feed-rs = "2.3.1"
+reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls"] }
 
 [dev-dependencies]
 tempfile = "3.15"

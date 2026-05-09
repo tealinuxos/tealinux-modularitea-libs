@@ -9,6 +9,8 @@ pub mod grub;
 pub mod pacman;
 pub mod paru;
 pub mod systemctl;
+pub mod news_parser;
+pub mod tools_utils;
 
 pub use aur_client::AurClient;
 pub use fs::Fs;
@@ -16,3 +18,4 @@ pub use grub::Grub;
 pub use pacman::Pacman;
 pub use paru::Paru;
 pub use systemctl::Systemctl;
+pub use tools_utils::{mode, PackageCacheCleaner, Swap, ToolsUtils};
