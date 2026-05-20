@@ -22,13 +22,18 @@ pub struct Swap;
 
 impl PackageCacheCleaner {
 	pub fn clean() -> Result<CommandOutput> {
-		let cmd = "rm -rf /var/cache/pacman/pkg/*";
+		// let cmd = "/usr/bin/pkexec  -rf ";
 
-		let output = Command::new("pkexec")
-			.args([cmd])
-			.output()
+		// println!("executing: {}", cmd);
+
+		let unnormalized_cmd = "pkexec /usr/bin/rm -rf /var/cache/pacman/pkg/*";
+
+		let output = duct::cmd!("sh", "-c", unnormalized_cmd)
+			.stdout_capture()
+			.stderr_capture()
+			.run()
 			.map_err(|e| ModulariteaError::CommandError {
-				command: cmd.to_string(),
+				command: unnormalized_cmd.to_string(),
 				exit_code: None,
 				stderr: e.to_string(),
 			})?;
@@ -37,11 +42,16 @@ impl PackageCacheCleaner {
 		let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
 		if !output.status.success() {
-			return Err(ModulariteaError::CommandError {
-				command: cmd.to_string(),
+
+			let sysret = ModulariteaError::CommandError {
+				command: unnormalized_cmd.to_string(),
 				exit_code: output.status.code(),
 				stderr,
-			});
+			};
+
+			println!("{:?}", sysret);
+
+			return Err(sysret);
 		}
 
 		Ok(CommandOutput {
@@ -86,11 +96,44 @@ impl Swap {
 
 		let mut logs = String::new();
 
-		let reload = Self::run_command("systemctl", &["daemon-reload"])?;
+		let reload_output = duct::cmd!("systemctl", "daemon-reload")
+			.stdout_capture()
+			.stderr_capture()
+			.run()
+			.map_err(|e| ModulariteaError::CommandError {
+				command: "systemctl daemon-reload".to_string(),
+				exit_code: None,
+				stderr: e.to_string(),
+			})?;
+		let reload = Self::output_to_command_output("systemctl daemon-reload", reload_output)?;
 		logs.push_str(&reload.stdout);
 
-		let service_result = Self::run_command("systemctl", &["restart", "systemd-zram-setup@zram0.service"])
-			.or_else(|_| Self::run_command("systemctl", &["start", "systemd-zram-setup@zram0.service"]))?;
+		let restart_output = duct::cmd!("systemctl", "restart", "systemd-zram-setup@zram0.service")
+			.stdout_capture()
+			.stderr_capture()
+			.run()
+			.map_err(|e| ModulariteaError::CommandError {
+				command: "systemctl restart systemd-zram-setup@zram0.service".to_string(),
+				exit_code: None,
+				stderr: e.to_string(),
+			})?;
+
+		let (service_cmd, service_output) = if restart_output.status.success() {
+			("systemctl restart systemd-zram-setup@zram0.service", restart_output)
+		} else {
+			let start_output = duct::cmd!("systemctl", "start", "systemd-zram-setup@zram0.service")
+				.stdout_capture()
+				.stderr_capture()
+				.run()
+				.map_err(|e| ModulariteaError::CommandError {
+					command: "systemctl start systemd-zram-setup@zram0.service".to_string(),
+					exit_code: None,
+					stderr: e.to_string(),
+				})?;
+			("systemctl start systemd-zram-setup@zram0.service", start_output)
+		};
+
+		let service_result = Self::output_to_command_output(service_cmd, service_output)?;
 		logs.push_str(&service_result.stdout);
 
 		Ok(CommandOutput {
@@ -132,9 +175,10 @@ impl Swap {
 	}
 
 	fn run_command(bin: &str, args: &[&str]) -> Result<CommandOutput> {
-		let output = Command::new(bin)
-			.args(args)
-			.output()
+		let output = duct::cmd(bin, args)
+			.stdout_capture()
+			.stderr_capture()
+			.run()
 			.map_err(|e| ModulariteaError::CommandError {
 				command: format!("{} {}", bin, args.join(" ")),
 				exit_code: None,
@@ -147,6 +191,25 @@ impl Swap {
 		if !output.status.success() {
 			return Err(ModulariteaError::CommandError {
 				command: format!("{} {}", bin, args.join(" ")),
+				exit_code: output.status.code(),
+				stderr,
+			});
+		}
+
+		Ok(CommandOutput {
+			exit_code: output.status.code().unwrap_or(0),
+			stdout,
+			stderr,
+		})
+	}
+
+	fn output_to_command_output(command: &str, output: std::process::Output) -> Result<CommandOutput> {
+		let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+		let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+		if !output.status.success() {
+			return Err(ModulariteaError::CommandError {
+				command: command.to_string(),
 				exit_code: output.status.code(),
 				stderr,
 			});
