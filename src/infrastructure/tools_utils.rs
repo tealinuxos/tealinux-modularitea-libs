@@ -203,7 +203,7 @@ impl Swap {
 		})
 	}
 
-	fn output_to_command_output(command: &str, output: std::proc) -> Result<CommandOutput> {
+	fn output_to_command_output(command: &str, output: std::process::Output) -> Result<CommandOutput> {
 		let stdout = String::from_utf8_lossy(&output.stdout).to_string();
 		let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
