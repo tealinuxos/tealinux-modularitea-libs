@@ -285,6 +285,12 @@ match CpuBooster::set_profile(&profile) {
 }
 ```
 
+### Getting the status
+
+sometimes, you'll need to read the state to decide whatever "toogle button" is enabled or not. in order to support this, I create APIs. 
+
+for example. please see `./tealinux-modularitea-libs/src/bin/modularitea-getstate-test.rs` about how you use it
+
 
 
 Last edited: Thu Mar 26 11:35:22 AM WIB 2026 by Fadhil Riyanto 
